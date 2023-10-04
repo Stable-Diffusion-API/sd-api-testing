@@ -1,0 +1,139 @@
+def make_post_request(endpoint_url: str, 
+                      prompt_body: Dict, 
+                      headers: Dict[str, str], 
+                      timeout_seconds: int = 60) -> Optional[Dict[str, Any]]:
+    """
+    Makes a POST request to the given endpoint with the provided data and headers.
+
+    :param endpoint_url: URL to send the request to.
+    :param data_to_send: Data to send in JSON format.
+    :param headers: Request headers.
+    :param timeout_seconds: Timeout for the request in seconds.
+    :return: Response data as a dictionary if successful, otherwise None.
+    :raises PostRequestException: If the request fails with a non-success status code.
+    :raises RequestTimeoutException: If the request times out.
+    """
+    try:
+        api_service = endpoint_url.split("/")[-1]
+        prompt_body['key'] = AP
+        logger.info(f"Performing post request to {api_service} API . . . .")
+        logger.info(f"Request body: {prompt_body}")
+        response = requests.post(endpoint_url, data=json.dumps(prompt_body), headers=headers, timeout=timeout_seconds)
+        expected_eta = ''
+
+        if response.status_code == 200:
+            logger.info("Request was successful!")
+            result = response.json() # if the response is in JSON format
+            
+            # Current time
+            start_time = time.time()
+
+            if result['status'] == "processing":
+                retry_count = 0
+                logger.info(f"Results processing....Checking again in {result['eta']} seconds.")
+                expected_eta = result['eta']
+                time.sleep(result['eta'])
+                
+                fetch_queued_images_url = result['fetch_result']
+                while retry_count < MAX_RETRIES:
+                    response = requests.post(url=fetch_queued_images_url, 
+                                             data=json.dumps({"key": prompt_body['key']}), 
+                                             headers=headers, 
+                                             timeout=timeout_seconds)
+                    result = response.json()
+
+                    if result['status'] == "success":
+                        logger.info("Output generation was successful! Breaking the loop.")
+
+                        # Calculate the difference in seconds
+                        generation_time = round(time.time() - start_time, 2)
+
+                        print(f"Test: {result['output']} {generation_time}")
+
+                        retry_count = 0 
+                        response_statuses = []
+                        image_status_check = False 
+                        for output_link in result['output']:
+                            response = requests.get(output_link)
+                            while retry_count < MAX_RETRIES:
+                                if response.status_code == 200:
+                                    image_delivery_time = round(time.time() - start_time, 2)
+                                    response_statuses.append({output_link: f"image_delivery_time: {image_delivery_time}, retry_count: {retry_count}"})
+                                    image_status_check = True
+                                    break
+                                else:
+                                    logger.info(f"Link not working: Retrying again...{retry_count}")
+                                    time.sleep(2)
+                                    retry_count += 1
+                        
+                        append_to_csv(endpoint=endpoint_url, 
+                                      estimated_time_of_arrival=expected_eta,
+                                      image_links=result['output'],
+                                      generation_time=generation_time,
+                                      images_delivery_time=response_statuses)
+                        break
+                    
+                    elif result['status'] == "processing":
+                        logger.info(f"Results processing....Checking again in {SLEEP_TIME} seconds.")
+                        time.sleep(SLEEP_TIME)
+                        retry_count += 1
+                    else:
+                        logger.error(f"Unexpected status: {result['status']}. Retrying...")
+                        retry_count += 1
+
+                if retry_count == MAX_RETRIES:
+                    logger.error("Max retries reached. Exiting loop.")
+            
+            elif result['status'] == "success":
+                logger.info("Output generation was successful!")
+                # Calculate the difference in seconds
+                print(start_time)
+                print(time.time())
+                generation_time = round(time.time() - start_time, 2)
+
+                print(f"Test: {result['output']} {generation_time}")
+                retry_count = 0 
+                response_statuses = [] 
+                for output_link in result['output']:
+                    while retry_count < MAX_RETRIES:
+                        response = requests.get(output_link)
+                        if response.status_code == 200:
+                            image_delivery_time = round(time.time() - start_time, 2)
+                            response_statuses.append({output_link: f"image_delivery_time: {image_delivery_time}, retry_count: {retry_count}"})
+                            break
+                        else:
+                            logger.info(f"Link not working: Retrying again...{retry_count}")
+                            time.sleep(2)
+                            retry_count += 1
+                
+                if retry_count == MAX_RETRIES:
+                    logger.error("Max retries reached. Exiting loop.")
+                    response_statuses.append({output_link: f"link not working"})
+
+                append_to_csv(endpoint=endpoint_url, 
+                                estimated_time_of_arrival=expected_eta,
+                                image_links=result['output'],
+                                generation_time=generation_time,
+                                images_delivery_time=response_statuses)
+            
+            elif result['status'] == "error":
+                logger.error(f"Error. Please enter proper parameters.")
+            
+            elif result['status'] == "failed":
+                logger.error(f"Request failed. {result}")
+
+            return result
+        else:
+            error_message = f"Request failed with status code {response.status_code}. Response: {response.text}"
+            logger.error(error_message)
+            raise PostRequestException(error_message)
+
+    except requests.exceptions.Timeout:
+        error_message = f"Request timed out after {timeout_seconds} seconds."
+        logger.error(error_message)
+        raise RequestTimeoutException(error_message)
+    
+    except Exception as e:
+        error_message = f"An unexpected error occurred: {str(e)}"
+        logger.error(error_message)
+        raise PostRequestException(error_message)

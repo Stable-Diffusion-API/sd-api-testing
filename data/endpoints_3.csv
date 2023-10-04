@@ -1,0 +1,49 @@
+EndPoint,Json
+https://stablediffusionapi.com/api/v4/dreambooth,"{
+  ""key"": """",
+  ""model_id"": ""midjourney"",
+  ""prompt"": ""ultra realistic close up portrait ((beautiful pale cyberpunk female with heavy black eyeliner)), blue eyes, shaved side haircut, hyper detail, cinematic lighting, magic neon, dark red city, Canon EOS R3, nikon, f/1.4, ISO 200, 1/160s, 8K, RAW, unedited, symmetrical balance, in-frame, 8K"",
+  ""negative_prompt"": """",
+  ""width"": ""512"",
+  ""height"": ""512"",
+  ""samples"": ""1"",
+  ""num_inference_steps"": ""30"",
+  ""safety_checker"": ""no"",
+  ""enhance_prompt"": ""yes"",
+  ""seed"": null,
+  ""guidance_scale"": 7.5,
+  ""multi_lingual"": ""no"",
+  ""panorama"": ""no"",
+  ""self_attention"": ""no"",
+  ""upscale"": ""no"",
+  ""embeddings_model"": null,
+  ""lora_model"": null,
+  ""tomesd"": ""yes"",
+  ""clip_skip"": ""2"",
+  ""use_karras_sigmas"": ""yes"",
+  ""vae"": null,
+  ""lora_strength"": null,
+  ""scheduler"": ""UniPCMultistepScheduler"",
+  ""webhook"": null,
+  ""track_id"": null
+}"
+https://stablediffusionapi.com/api/v5/pix2pix,"{
+  ""key"": """",
+  ""init_image"" : ""https://www.krugerpark.co.za/images/black-maned-lion-shem-compion-786x500.jpg"",
+  ""prompt"" : ""make him tiger"",
+  ""image_guidance_scale"" : 1,
+  ""steps"" : 50,
+  ""guidance_scale"" : 7
+}"
+https://stablediffusionapi.com/api/v5/depth2img,"{
+  ""key"": """",
+  ""init_image"" : ""https://upload.wikimedia.org/wikipedia/commons/6/6e/Shah_Rukh_Khan_graces_the_launch_of_the_new_Santro.jpg"",
+  ""prompt"" : ""give him glasses""
+}"
+https://stablediffusionapi.com/api/v3/super_resolution,"{
+ ""key"": """",
+ ""url"": ""https://pub-8b49af329fae499aa563997f5d4068a4.r2.dev/generations/d8cd0add-8cd7-40a4-802b-7b80be45a14c-0.png"",
+ ""scale"": 3,
+ ""webhook"": null,
+ ""face_enhance"": false
+}"
